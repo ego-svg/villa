@@ -1,28 +1,27 @@
 /**
- * PRIVATE RESIDENCE — Scroll-Controlled Cinematic House Experience
+ * PRIVATE RESIDENCE — Scroll-Controlled Cinematic House Experience & Architectural Monograph
  *
  * Implements:
  * 1. Pinned/sticky full-screen video stage controlled strictly by scroll position (NO autoplay).
  * 2. Smooth scrubbing of the actual luxury house film (`/luxury.mp4`).
  * 3. Editorial architectural chapter transitions synchronized with scroll timeline.
- * 4. Seamless continuation into curated property presentation & private inquiry sections.
- * 5. Reduced-motion timeline slider fallback.
+ * 4. Interactive Architectural Blueprint & Spatial Vector Map with spatial hotspots.
+ * 5. Monograph specifications, materiality cards, and private acquisition dossier form.
  */
 
 import React, { useRef, useState, useMemo } from 'react';
 import { useScrollVideoTimeline } from '../../engine/useScrollVideoTimeline';
 import { formatVideoTime } from '../../engine/scrollVideo';
-import { ResidenceLogo } from '../brand/ResidenceLogo';
 import {
   Lock,
-  ChevronDown,
-  Compass,
-  Maximize2,
   SlidersHorizontal,
-  ArrowUpRight,
   Check,
-  Send,
   AlertCircle,
+  Compass,
+  Layers,
+  Sparkles,
+  Maximize2,
+  Info,
 } from 'lucide-react';
 
 interface CinematicHouseExperienceProps {
@@ -56,17 +55,78 @@ const CHAPTERS = [
   },
 ];
 
+interface SpatialHotspot {
+  id: string;
+  name: string;
+  x: number; // percentage
+  y: number; // percentage
+  level: 'Level 01 · Main Pavilion' | 'Level 02 · Master Wing' | 'Subterranean · Wellness';
+  dimensions: string;
+  finishes: string;
+  exposure: string;
+  description: string;
+}
+
+const SPATIAL_HOTSPOTS: SpatialHotspot[] = [
+  {
+    id: 'living-pavilion',
+    name: 'The Great Living Pavilion',
+    x: 48,
+    y: 42,
+    level: 'Level 01 · Main Pavilion',
+    dimensions: '3,850 sq ft · 18 ft Ceiling',
+    finishes: 'Honed Tivoli Travertine, Brushed Bronze Joinery',
+    exposure: 'Southwest (180° Panoramic Horizon)',
+    description: 'A 34-foot column-free cantilever projecting over the forest floor with acoustic triple glazing.',
+  },
+  {
+    id: 'infinity-terrace',
+    name: 'Reflection Terrace & Pool',
+    x: 75,
+    y: 68,
+    level: 'Level 01 · Main Pavilion',
+    dimensions: '2,400 sq ft Outdoor Plane',
+    finishes: 'Flamed Zimbabwe Black Granite, Heated Water Edge',
+    exposure: 'West Sunset Orientation',
+    description: 'Zero-edge black granite water plane creating a mirror image of the twilight horizon.',
+  },
+  {
+    id: 'master-suite',
+    name: 'Primary Master Sanctuary',
+    x: 28,
+    y: 30,
+    level: 'Level 02 · Master Wing',
+    dimensions: '1,950 sq ft Private Wing',
+    finishes: 'Swiss Cedar Paneling, Silk Plaster, Calacatta Marble',
+    exposure: 'Southeast Sunrise Light',
+    description: 'Private cantilevered loggia, Dual ensuite dressing rooms, and integrated steam lounge.',
+  },
+  {
+    id: 'wellness-spa',
+    name: 'Subterranean Thermal Spa',
+    x: 55,
+    y: 80,
+    level: 'Subterranean · Wellness',
+    dimensions: '2,800 sq ft Wellness Level',
+    finishes: 'Honed Lava Stone, Finnish Cedar, Temperature Vault',
+    exposure: 'Secluded Underground Sanctuary',
+    description: '25m lap pool, ice plunge, sommelier 1,200-bottle wine vault, and 6-bay gallery garage.',
+  },
+];
+
 export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> = ({
   onLockResidence,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [reducedMotionMode, setReducedMotionMode] = useState(false);
+  const [selectedHotspot, setSelectedHotspot] = useState<SpatialHotspot>(SPATIAL_HOTSPOTS[0]);
+  const [activeLevelTab, setActiveLevelTab] = useState<SpatialHotspot['level']>('Level 01 · Main Pavilion');
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({
     name: '',
     email: '',
-    representation: 'Private Buyer',
+    representation: 'Private Principal',
     notes: '',
   });
 
@@ -74,7 +134,6 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
     progress,
     currentTime,
     duration,
-    isLoaded,
     hasError,
     errorMessage,
     hasScrolled,
@@ -93,43 +152,96 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
     );
   }, [progress]);
 
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const handleInquirySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inquiryForm.name || !inquiryForm.email) return;
     setInquirySubmitted(true);
   };
 
+  const filteredHotspots = useMemo(() => {
+    return SPATIAL_HOTSPOTS.filter((h) => h.level === activeLevelTab);
+  }, [activeLevelTab]);
+
   return (
     <div className="relative w-full min-h-screen bg-[#090a0c] text-stone-200 selection:bg-amber-400 selection:text-black">
-      {/* Fixed Minimal Top Bar */}
-      <header className="fixed top-0 left-0 w-full z-40 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between pointer-events-none transition-all duration-300">
-        <div className="pointer-events-auto flex items-center bg-black/70 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-white/10 shadow-lg">
-          <ResidenceLogo size="xs" subtitle="Villa Solitude" />
-        </div>
+      {/* 
+        TOP BAR CONTRACT (Exhaustive 3-Zone)
+        Zone 1: Brand Wordmark | Zone 2: Single-line Links | Zone 3: Primary Action Button
+      */}
+      <header className="fixed top-0 left-0 w-full z-40 px-6 py-3.5 flex items-center justify-between gap-8 bg-[#090a0c]/85 backdrop-blur-md border-b border-white/10 select-none">
+        {/* Zone 1: Single Text Element Wordmark */}
+        <a
+          href="#reel"
+          onClick={(e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="text-base font-serif tracking-[0.25em] text-white whitespace-nowrap shrink-0 hover:text-amber-200 transition-colors"
+        >
+          PRIVATE RESIDENCE
+        </a>
 
-        <div className="pointer-events-auto flex items-center gap-3">
-          {/* Reduced-Motion / Manual Scrub Toggle */}
+        {/* Zone 2: 4 Single-Line Text Navigation Links */}
+        <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-stone-400">
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Film Reel
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('monograph')}
+            className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Monograph
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('blueprint')}
+            className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Spatial Blueprint
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('acquisition')}
+            className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Private Acquisition
+          </button>
+        </nav>
+
+        {/* Zone 3: 1 Primary Action & Mode Controls */}
+        <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={() => setReducedMotionMode((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border backdrop-blur-md transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border transition-colors cursor-pointer ${
               reducedMotionMode
                 ? 'bg-amber-400/20 text-amber-200 border-amber-400/40'
-                : 'bg-black/60 text-stone-400 hover:text-white border-white/10'
+                : 'bg-white/5 hover:bg-white/10 text-stone-400 hover:text-white border-white/10'
             }`}
             title="Toggle between Scroll Scrub and Manual Slider"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline whitespace-nowrap shrink-0">
               {reducedMotionMode ? 'Manual Scrubber' : 'Scroll Scrub'}
             </span>
           </button>
 
-          {/* Return / Lock Button */}
           <button
             type="button"
             onClick={onLockResidence}
-            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-stone-300 hover:text-white bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-stone-200 hover:text-white bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-xl transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             <Lock className="w-3.5 h-3.5 text-amber-300" />
             <span>Lock Portal</span>
@@ -143,6 +255,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
         Scrolling down advances currentTime from 0 to duration; scrolling up reverses it.
       */}
       <section
+        id="reel"
         ref={containerRef}
         className="relative w-full h-[420vh] bg-black"
         aria-label="Scroll-controlled property film"
@@ -193,13 +306,13 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
           </div>
 
           {/* Dynamic Architectural Chapter Milestone Overlay */}
-          <div className="absolute top-20 sm:top-24 left-6 sm:left-12 max-w-lg pointer-events-none z-20 transition-all duration-300">
-            <div className="flex items-center gap-2 mb-1.5 text-xs text-amber-300/80 font-mono tracking-widest">
+          <div className="absolute top-24 sm:top-28 left-6 sm:left-12 max-w-lg pointer-events-none z-20 transition-all duration-300">
+            <div className="flex items-center gap-2 mb-2 text-xs text-amber-300/90 font-mono tracking-widest">
               <span>CHAPTER {activeChapter.numeral}</span>
-              <span>·</span>
-              <span className="uppercase">{Math.round(progress * 100)}% COMPLETE</span>
+              <span aria-hidden="true">·</span>
+              <span className="uppercase">{Math.round(progress * 100)}% FILM REEL</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-serif text-white tracking-wide leading-tight mb-2 text-balance drop-shadow-md">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif text-white tracking-wide leading-tight mb-2 text-balance drop-shadow-md">
               {activeChapter.title}
             </h1>
             <p className="text-xs sm:text-sm text-stone-300 font-sans max-w-md leading-relaxed text-balance drop-shadow">
@@ -209,7 +322,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
 
           {/* Manual Scrubber Overlay for Reduced Motion Mode */}
           {reducedMotionMode && (
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-black/80 backdrop-blur-md border border-white/20 p-4 rounded-2xl z-30 flex flex-col gap-2 shadow-2xl">
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-black/85 backdrop-blur-md border border-white/20 p-4 rounded-2xl z-30 flex flex-col gap-2 shadow-2xl">
               <div className="flex items-center justify-between text-xs text-stone-300">
                 <span className="font-serif">Manual Film Scrubber</span>
                 <span className="font-mono text-amber-300">
@@ -236,11 +349,11 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
             {/* Timestamp */}
             <div className="flex items-center gap-2 text-xs font-mono text-stone-400 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
               <span className="text-amber-200">{formatVideoTime(currentTime)}</span>
-              <span>/</span>
+              <span aria-hidden="true">/</span>
               <span>{formatVideoTime(duration)}</span>
             </div>
 
-            {/* Timeline Line with Chapter Dots */}
+            {/* Timeline Line with Progress Fill */}
             <div className="relative flex-1 h-[2px] bg-white/15 rounded-full overflow-hidden max-w-xl mx-auto">
               <div
                 className="h-full bg-gradient-to-r from-amber-200 to-amber-300 transition-all duration-75"
@@ -250,7 +363,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
 
             {/* Frame Status */}
             <div className="text-[11px] font-sans uppercase tracking-widest text-stone-400 hidden sm:block bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
-              {progress >= 1 ? 'End of Reel' : 'Scroll Scrubbing'}
+              {progress >= 0.99 ? 'Film Complete' : 'Scroll Driven'}
             </div>
           </div>
         </div>
@@ -262,13 +375,13 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
       */}
       <div className="relative z-30 bg-[#090a0c] border-t border-white/10">
         {/* Monograph Lead & Specifications Grid */}
-        <section className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
+        <section id="monograph" className="max-w-6xl mx-auto px-6 py-24 sm:py-32">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 border-b border-white/10 pb-12">
             <div>
               <span className="text-xs uppercase tracking-[0.3em] text-amber-300 font-semibold mb-3 block">
                 Architectural Monograph
               </span>
-              <h2 className="text-3xl sm:text-5xl font-serif text-white tracking-wide max-w-2xl leading-tight">
+              <h2 className="text-3xl sm:text-5xl font-serif text-white tracking-wide max-w-2xl leading-tight text-balance">
                 A sanctuary of cantilevered geometry, native pine, and uninterrupted horizon.
               </h2>
             </div>
@@ -277,7 +390,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
             </p>
           </div>
 
-          {/* Key Specifications Grid */}
+          {/* Key Specifications Grid (Tabular Numerals) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-20">
             <div className="border-t border-white/15 pt-4">
               <span className="text-xs text-stone-500 uppercase tracking-widest block mb-1">
@@ -315,7 +428,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
 
           {/* Architectural Pillars / Materiality */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-2xl bg-[#111318] border border-white/10 flex flex-col justify-between">
+            <div className="p-8 rounded-2xl bg-[#111318] border border-white/10 flex flex-col justify-between hover:border-amber-400/30 transition-colors">
               <div>
                 <span className="text-xs font-mono text-amber-300 tracking-widest mb-3 block">
                   01 / MATERIALITY
@@ -327,7 +440,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
               </div>
             </div>
 
-            <div className="p-8 rounded-2xl bg-[#111318] border border-white/10 flex flex-col justify-between">
+            <div className="p-8 rounded-2xl bg-[#111318] border border-white/10 flex flex-col justify-between hover:border-amber-400/30 transition-colors">
               <div>
                 <span className="text-xs font-mono text-amber-300 tracking-widest mb-3 block">
                   02 / STRUCTURE
@@ -339,7 +452,7 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
               </div>
             </div>
 
-            <div className="p-8 rounded-2xl bg-[#111318] border border-white/10 flex flex-col justify-between">
+            <div className="p-8 rounded-2xl bg-[#111318] border border-white/10 flex flex-col justify-between hover:border-amber-400/30 transition-colors">
               <div>
                 <span className="text-xs font-mono text-amber-300 tracking-widest mb-3 block">
                   03 / AMENITIES
@@ -353,8 +466,146 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
           </div>
         </section>
 
+        {/* INTERACTIVE ARCHITECTURAL BLUEPRINT & SPATIAL MAP SECTION */}
+        <section id="blueprint" className="border-t border-white/10 bg-[#0c0e12] py-24 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+              <div>
+                <span className="text-xs uppercase tracking-[0.3em] text-amber-300 font-semibold mb-2 block flex items-center gap-2">
+                  <Compass className="w-4 h-4" />
+                  <span>Spatial Architecture Vector</span>
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-serif text-white tracking-wide">
+                  Interactive Floorplan & Spatial Plan
+                </h2>
+              </div>
+
+              {/* Zero-Pill Interactive Level Tabs */}
+              <div className="flex items-center gap-2 p-1 bg-white/[0.04] border border-white/10 rounded-xl">
+                {(['Level 01 · Main Pavilion', 'Level 02 · Master Wing', 'Subterranean · Wellness'] as const).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => setActiveLevelTab(lvl)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                      activeLevelTab === lvl
+                        ? 'bg-amber-400/20 text-amber-200 border border-amber-400/30'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    {lvl.split('·')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              {/* SVG Blueprint Canvas Viewport */}
+              <div className="lg:col-span-2 relative aspect-[4/3] bg-[#07080a] border border-white/10 rounded-2xl overflow-hidden p-6 flex items-center justify-center shadow-2xl">
+                {/* SVG Blueprint Grid Lines */}
+                <svg className="absolute inset-0 w-full h-full opacity-15" width="100%" height="100%">
+                  <defs>
+                    <pattern id="blueprint-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-300" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#blueprint-grid)" />
+                </svg>
+
+                {/* Stylized Architectural Floorplan Geometry */}
+                <svg className="relative w-full h-full max-w-lg max-h-80" viewBox="0 0 500 350" fill="none">
+                  {/* Outer Footprint Wall */}
+                  <rect x="50" y="40" width="400" height="260" rx="8" stroke="#d4af37" strokeWidth="1.5" strokeDasharray="6 3" className="opacity-40" />
+                  
+                  {/* Primary Living Pavilion */}
+                  <rect x="80" y="70" width="220" height="150" fill="#f59e0b" fillOpacity="0.04" stroke="#f59e0b" strokeWidth="1.2" />
+                  
+                  {/* Cantilever Deck */}
+                  <rect x="300" y="70" width="120" height="150" fill="#ffffff" fillOpacity="0.02" stroke="#ffffff" strokeWidth="1" strokeDasharray="3 3" />
+                  
+                  {/* Reflection Pool */}
+                  <rect x="320" y="190" width="110" height="80" fill="#38bdf8" fillOpacity="0.08" stroke="#38bdf8" strokeWidth="1" />
+                  
+                  {/* Master Wing */}
+                  <rect x="80" y="230" width="180" height="60" fill="#f59e0b" fillOpacity="0.04" stroke="#f59e0b" strokeWidth="1" />
+
+                  {/* Compass Rose Indicator */}
+                  <g transform="translate(430, 80)">
+                    <circle cx="0" cy="0" r="18" stroke="#d4af37" strokeWidth="0.8" fill="none" opacity="0.4" />
+                    <text x="0" y="-22" textAnchor="middle" fill="#d4af37" fontSize="9" fontFamily="sans-serif">N</text>
+                    <path d="M 0 -12 L 3 0 L 0 12 L -3 0 Z" fill="#d4af37" opacity="0.8" />
+                  </g>
+                </svg>
+
+                {/* Interactive Hotspot Markers */}
+                {filteredHotspots.map((spot) => {
+                  const isSelected = selectedHotspot.id === spot.id;
+                  return (
+                    <button
+                      key={spot.id}
+                      type="button"
+                      onClick={() => setSelectedHotspot(spot)}
+                      style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 group flex items-center justify-center cursor-pointer transition-all ${
+                        isSelected ? 'scale-125 z-20' : 'hover:scale-110 z-10'
+                      }`}
+                      title={`Select ${spot.name}`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${
+                        isSelected
+                          ? 'bg-amber-300 text-black border-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.6)]'
+                          : 'bg-black/80 text-amber-300 border-amber-400/40 hover:border-amber-300'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-black' : 'bg-amber-300 animate-ping'}`} />
+                      </div>
+                      <span className="absolute left-10 top-0 text-[10px] font-sans font-medium text-white whitespace-nowrap bg-black/90 px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {spot.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Hotspot Spec Panel */}
+              <div className="bg-[#111318] border border-white/10 p-6 rounded-2xl flex flex-col justify-between h-full">
+                <div>
+                  <div className="text-[11px] font-mono text-amber-300 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5" />
+                    <span>{selectedHotspot.level}</span>
+                  </div>
+                  <h3 className="text-2xl font-serif text-white mb-4">
+                    {selectedHotspot.name}
+                  </h3>
+                  <p className="text-xs text-stone-300 leading-relaxed mb-6">
+                    {selectedHotspot.description}
+                  </p>
+
+                  <div className="space-y-3 text-xs border-t border-white/10 pt-4">
+                    <div>
+                      <span className="text-stone-500 uppercase tracking-wider block text-[10px]">Dimensions & Volume</span>
+                      <span className="text-white font-mono">{selectedHotspot.dimensions}</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-500 uppercase tracking-wider block text-[10px]">Material Palette</span>
+                      <span className="text-stone-300">{selectedHotspot.finishes}</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-500 uppercase tracking-wider block text-[10px]">Light Exposure</span>
+                      <span className="text-amber-200/90">{selectedHotspot.exposure}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-white/10 text-[11px] text-stone-500">
+                  Select floorplan hotspots above to inspect specific spatial volumes.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Private Acquisition Inquiry Section */}
-        <section className="border-t border-white/10 bg-[#0b0d10] py-24 px-6">
+        <section id="acquisition" className="border-t border-white/10 bg-[#0b0d10] py-24 px-6">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-12">
               <span className="text-xs uppercase tracking-[0.3em] text-amber-300 font-semibold mb-2 block">
@@ -458,12 +709,9 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
         </section>
 
         {/* Quiet Editorial Footer */}
-        <footer className="border-t border-white/10 py-12 px-6 flex flex-col sm:flex-row items-center justify-between gap-6 max-w-6xl mx-auto text-xs text-stone-500">
-          <div className="flex items-center gap-4">
-            <ResidenceLogo size="xs" showSubtitle={false} />
-            <span className="text-stone-500 border-l border-white/10 pl-4">
-              &copy; 2026 PRIVATE RESIDENCE · Villa Solitude · All Rights Reserved
-            </span>
+        <footer className="border-t border-white/10 py-12 px-6 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-6xl mx-auto text-xs text-stone-500">
+          <div>
+            &copy; 2026 PRIVATE RESIDENCE · Villa Solitude · All Rights Reserved
           </div>
           <div className="flex items-center gap-6">
             <button

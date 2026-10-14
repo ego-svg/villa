@@ -200,11 +200,10 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
       const success = await cameraManagerRef.current.start();
       if (success) {
         setCameraActive(true);
+        setShowPermissionGuide(false);
       } else {
         setCameraActive(false);
-        if (cameraError?.includes('denied') || cameraError?.includes('permission')) {
-          setShowPermissionGuide(true);
-        }
+        setShowPermissionGuide(true);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to initialize camera';
@@ -578,6 +577,7 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
           setShowPermissionGuide(false);
           setIsSimulatingGesture(true);
         }}
+        errorMessage={cameraError}
       />
 
       {/* Bottom Architectural Footer */}
