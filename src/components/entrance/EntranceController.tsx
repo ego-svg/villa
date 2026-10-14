@@ -473,10 +473,10 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
                   <Hand className="w-3 h-3 text-amber-300 animate-pulse shrink-0" />
                   {targetedKeyId ? (
                     <span>
-                      Targeting <strong className="text-amber-300 font-mono text-xs underline">{targetedKeyId}</strong> — Pinch
+                      Targeting <strong className="text-amber-300 font-mono text-xs underline">{targetedKeyId}</strong> — Touch fingers
                     </span>
                   ) : (
-                    <span>Aim at numbers & pinch</span>
+                    <span>Aim at number & touch fingers to press</span>
                   )}
                 </span>
 

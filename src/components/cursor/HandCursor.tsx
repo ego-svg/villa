@@ -13,15 +13,21 @@ import { ScreenPoint } from '../../engine/gestures';
 
 interface HandCursorProps {
   cursor: ScreenPoint | null;
-  isPinching: boolean;
-  pinchDistance: number | null;
+  isTouching?: boolean;
+  isPinching?: boolean;
+  fingerDistance?: number | null;
+  pinchDistance?: number | null;
 }
 
 export const HandCursor: React.FC<HandCursorProps> = ({
   cursor,
+  isTouching,
   isPinching,
+  fingerDistance,
   pinchDistance,
 }) => {
+  const activeTouch = isTouching ?? isPinching ?? false;
+  const activeDistance = fingerDistance ?? pinchDistance ?? null;
   const cursorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,14 +46,14 @@ export const HandCursor: React.FC<HandCursorProps> = ({
 
   if (!cursor) return null;
 
-  // Normalized pinch proximity: 0 = fully pinched, 1 = open hand
-  const dist = pinchDistance !== null ? Math.min(1, Math.max(0, (pinchDistance - 0.05) / 0.10)) : 1;
-  const pinchProgress = 1 - dist; // 0 = open, 1 = trigger threshold
-  const ringScale = 0.70 + dist * 0.50; // Contract as fingers close
+  // Normalized finger touch proximity: 0 = fully touching, 1 = open hand
+  const dist = activeDistance !== null ? Math.min(1, Math.max(0, (activeDistance - 0.05) / 0.10)) : 1;
+  const touchProgress = 1 - dist; // 0 = open, 1 = trigger threshold
+  const ringScale = 0.70 + dist * 0.50; // Contract as fingers close to touch
 
   // SVG Circle stroke dash math for radial progress (r = 18, circumference = 2 * PI * 18 = 113)
   const circumference = 113;
-  const strokeDashoffset = circumference * (1 - pinchProgress);
+  const strokeDashoffset = circumference * (1 - touchProgress);
 
   return (
     <div
@@ -56,7 +62,7 @@ export const HandCursor: React.FC<HandCursorProps> = ({
       style={{ willChange: 'transform' }}
     >
       <div className="relative w-12 h-12 flex items-center justify-center">
-        {/* SVG Radial Arc Pinch Progress Indicator */}
+        {/* SVG Radial Arc Finger Touch Progress Indicator */}
         <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 44 44">
           <circle
             cx="22"
@@ -70,7 +76,7 @@ export const HandCursor: React.FC<HandCursorProps> = ({
             cy="22"
             r="18"
             className={`fill-none transition-all duration-75 ${
-              isPinching ? 'stroke-amber-300' : 'stroke-amber-400/80'
+              activeTouch ? 'stroke-amber-300' : 'stroke-amber-400/80'
             }`}
             strokeWidth="2.5"
             strokeDasharray={circumference}
@@ -82,7 +88,7 @@ export const HandCursor: React.FC<HandCursorProps> = ({
         {/* Outer Scaling Reticle Ring */}
         <div
           className={`absolute inset-1 rounded-full border transition-all duration-100 ${
-            isPinching
+            activeTouch
               ? 'border-amber-300 bg-amber-400/25 shadow-[0_0_20px_rgba(245,158,11,0.6)]'
               : 'border-white/40 bg-white/[0.03]'
           }`}
@@ -94,19 +100,19 @@ export const HandCursor: React.FC<HandCursorProps> = ({
         {/* Precision Architectural Crosshair Lines */}
         <div
           className={`absolute w-full h-[1px] transition-colors ${
-            isPinching ? 'bg-amber-300' : 'bg-white/30'
+            activeTouch ? 'bg-amber-300' : 'bg-white/30'
           }`}
         />
         <div
           className={`absolute h-full w-[1px] transition-colors ${
-            isPinching ? 'bg-amber-300' : 'bg-white/30'
+            activeTouch ? 'bg-amber-300' : 'bg-white/30'
           }`}
         />
 
         {/* Center Focal Target Dot */}
         <div
           className={`w-2.5 h-2.5 rounded-full transition-all duration-100 ${
-            isPinching
+            activeTouch
               ? 'bg-amber-200 scale-125 shadow-[0_0_12px_#f59e0b]'
               : 'bg-white/90 shadow-[0_0_6px_rgba(255,255,255,0.4)]'
           }`}

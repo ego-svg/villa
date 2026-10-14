@@ -5,11 +5,12 @@
  * 1. Pinned/sticky full-screen video stage controlled strictly by scroll position (NO autoplay).
  * 2. Smooth scrubbing of the actual luxury house film (`/luxury.mp4`).
  * 3. Editorial architectural chapter transitions synchronized with scroll timeline.
- * 4. Interactive Architectural Blueprint & Spatial Vector Map with spatial hotspots.
- * 5. Monograph specifications, materiality cards, and private acquisition dossier form.
+ * 4. Curated Architectural Gallery showcasing high-resolution estate photography & lightbox inspection.
+ * 5. Interactive Architectural Blueprint & Spatial Vector Map with spatial hotspots.
+ * 6. Monograph specifications, materiality cards, and private acquisition dossier form.
  */
 
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { useScrollVideoTimeline } from '../../engine/useScrollVideoTimeline';
 import { formatVideoTime } from '../../engine/scrollVideo';
 import {
@@ -18,10 +19,15 @@ import {
   Check,
   AlertCircle,
   Compass,
-  Layers,
-  Sparkles,
   Maximize2,
   Info,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Camera,
+  Layers,
+  Sparkles,
+  ArrowUpRight,
 } from 'lucide-react';
 
 interface CinematicHouseExperienceProps {
@@ -114,6 +120,90 @@ const SPATIAL_HOTSPOTS: SpatialHotspot[] = [
   },
 ];
 
+interface GalleryItem {
+  id: string;
+  src: string;
+  title: string;
+  category: string;
+  caption: string;
+  specs: { label: string; value: string }[];
+}
+
+const GALLERY_ITEMS: GalleryItem[] = [
+  {
+    id: 'monolith-facade',
+    src: '/images/monolith-facade.jpg',
+    title: 'Monolithic Volumetric Facade',
+    category: 'North Elevation · Dusk Approach',
+    caption: 'Dark graphite architectural volumes bathed in warm ambient uplighting, anchored against old-growth pines.',
+    specs: [
+      { label: 'Facing', value: 'North Elevation' },
+      { label: 'Lighting', value: '3,000K Architectural LED Uplighting' },
+      { label: 'Finish', value: 'Brushed Charcoal Titanium Coating' },
+    ],
+  },
+  {
+    id: 'ambient-pool-mansion',
+    src: '/images/ambient-pool-mansion.jpg',
+    title: 'Ambient Horizon Reflection Pool',
+    category: 'West Terrace · Twilight',
+    caption: 'Heated zero-edge pool in flamed Zimbabwe black granite, reflecting the sapphire twilight and glass pavilion.',
+    specs: [
+      { label: 'Surface Area', value: '2,400 sq ft Outdoor Plane' },
+      { label: 'Ambient Light', value: 'Deep Sapphire Underwater LED' },
+      { label: 'Water Edge', value: 'Perimeter Slot Drain' },
+    ],
+  },
+  {
+    id: 'architectural-statement',
+    src: '/images/architectural-statement.jpg',
+    title: 'Cantilevered Glass Structure',
+    category: 'Main Pavilion · Exterior View',
+    caption: 'A 34-foot column-free post-tensioned steel overhang floating over the sloped topographical terrain.',
+    specs: [
+      { label: 'Span', value: '34-Foot Column-Free Overhang' },
+      { label: 'Glazing', value: 'Triple-Laminated Low-E Acoustic Glass' },
+      { label: 'Load Support', value: 'Subterranean Concrete Pier System' },
+    ],
+  },
+  {
+    id: 'forest-sanctuary',
+    src: '/images/forest-sanctuary.jpg',
+    title: 'Old-Growth Forest Sanctuary',
+    category: 'Atrium & Natural Boundary',
+    caption: 'Uninterrupted glass curtains bringing old-growth pine trees into intimate dialogue with the honed stone paving.',
+    specs: [
+      { label: 'Surroundings', value: '1.85 Acres Private Pine Forest' },
+      { label: 'Air Quality', value: 'HEPA & UV-C Fresh Air Recirculation' },
+      { label: 'Acoustics', value: 'STC-52 Sound Transmission Rating' },
+    ],
+  },
+  {
+    id: 'advance-residence',
+    src: '/images/advance-residence.jpg',
+    title: 'Futuristic Structural Symmetry',
+    category: 'East Pavilion · Entrance Portal',
+    caption: 'Clean geometric lines, precision-milled aluminum louvers, and private motorized security entry gates.',
+    specs: [
+      { label: 'Access Control', value: 'Encrypted Biometric Gate Protocol' },
+      { label: 'Privacy', value: 'Motorized Exterior Solar Louvers' },
+      { label: 'Security', value: 'Subsurface Seismic Radar Boundary' },
+    ],
+  },
+  {
+    id: 'dramatic-living-pavilion',
+    src: '/images/dramatic-living-pavilion.jpg',
+    title: 'Double-Height Living Atrium',
+    category: 'Level 01 · Primary Lounge',
+    caption: 'An 18-foot soaring volume lined with dry-jointed Tivoli travertine, open-flame hearth, and panoramic horizon vistas.',
+    specs: [
+      { label: 'Ceiling Height', value: '18 Feet Clear Span' },
+      { label: 'Stone Cladding', value: 'Honed Roman Travertine Slabs' },
+      { label: 'Fireplace', value: '8-Foot Linear Ethanol Hearth' },
+    ],
+  },
+];
+
 export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> = ({
   onLockResidence,
 }) => {
@@ -122,6 +212,11 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
   const [reducedMotionMode, setReducedMotionMode] = useState(false);
   const [selectedHotspot, setSelectedHotspot] = useState<SpatialHotspot>(SPATIAL_HOTSPOTS[0]);
   const [activeLevelTab, setActiveLevelTab] = useState<SpatialHotspot['level']>('Level 01 · Main Pavilion');
+  
+  // Gallery Lightbox State
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Inquiry Form State
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({
     name: '',
@@ -169,6 +264,30 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
     return SPATIAL_HOTSPOTS.filter((h) => h.level === activeLevelTab);
   }, [activeLevelTab]);
 
+  // Lightbox Keyboard Handler
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (lightboxIndex === null) return;
+      if (e.key === 'Escape') {
+        setLightboxIndex(null);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev !== null ? (prev + 1) % GALLERY_ITEMS.length : 0));
+      } else if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) =>
+          prev !== null ? (prev - 1 + GALLERY_ITEMS.length) % GALLERY_ITEMS.length : 0
+        );
+      }
+    },
+    [lightboxIndex]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  const currentLightboxItem = lightboxIndex !== null ? GALLERY_ITEMS[lightboxIndex] : null;
+
   return (
     <div className="relative w-full min-h-screen bg-[#090a0c] text-stone-200 selection:bg-amber-400 selection:text-black">
       {/* 
@@ -188,8 +307,8 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
           PRIVATE RESIDENCE
         </a>
 
-        {/* Zone 2: 4 Single-Line Text Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-stone-400">
+        {/* Zone 2: 5 Single-Line Text Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-stone-400">
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -203,6 +322,13 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
             className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             Monograph
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('gallery')}
+            className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Architectural Gallery
           </button>
           <button
             type="button"
@@ -462,6 +588,79 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
                   A 25-meter infinity pool clad in flamed black Zimbabwe granite, complete with Finnish cedar sauna, sommelier temperature-controlled cellar, and 6-bay gallery.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 
+          CURATED ARCHITECTURAL GALLERY (Featuring Uploaded High-Res Residence Images)
+        */}
+        <section id="gallery" className="border-t border-white/10 bg-[#07080a] py-24 sm:py-32 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-10">
+              <div>
+                <span className="text-xs uppercase tracking-[0.3em] text-amber-300 font-semibold mb-3 block flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  <span>Curated Dossier Photography</span>
+                </span>
+                <h2 className="text-3xl sm:text-5xl font-serif text-white tracking-wide leading-tight">
+                  Architectural Photography & Volumetric Dossier
+                </h2>
+              </div>
+              <p className="text-xs sm:text-sm text-stone-400 max-w-md leading-relaxed">
+                Click any frame to launch full-screen high-resolution inspection mode with lighting and material specifications.
+              </p>
+            </div>
+
+            {/* Gallery Editorial Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {GALLERY_ITEMS.map((item, index) => (
+                <div
+                  key={item.id}
+                  onClick={() => setLightboxIndex(index)}
+                  className="group relative bg-[#111318] border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:border-amber-400/40 transition-all duration-300 flex flex-col justify-between"
+                >
+                  {/* Image Container */}
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-950">
+                    <img
+                      src={item.src}
+                      alt={item.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+
+                    {/* Quick Expand Icon Overlay */}
+                    <div className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center text-amber-200 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                      <Maximize2 className="w-4 h-4" />
+                    </div>
+
+                    {/* Unboxed Quiet Category Label */}
+                    <div className="absolute bottom-4 left-4 right-4 text-[11px] font-mono text-amber-200/90 tracking-wider">
+                      <span>{item.category}</span>
+                    </div>
+                  </div>
+
+                  {/* Card Editorial Info */}
+                  <div className="p-6 flex flex-col justify-between flex-1">
+                    <div>
+                      <h3 className="text-lg font-serif text-white mb-2 group-hover:text-amber-200 transition-colors flex items-center justify-between">
+                        <span>{item.title}</span>
+                        <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-amber-300 shrink-0" />
+                      </h3>
+                      <p className="text-xs text-stone-400 leading-relaxed mb-4">
+                        {item.caption}
+                      </p>
+                    </div>
+
+                    {/* Micro Spec Preview */}
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-stone-500 font-mono">
+                      <span>{item.specs[0].label}</span>
+                      <span className="text-stone-300">{item.specs[0].value}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -731,6 +930,99 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
           </div>
         </footer>
       </div>
+
+      {/* 
+        FULL-SCREEN LIGHTBOX MODAL FOR GALLERY INSPECTION
+      */}
+      {currentLightboxItem && lightboxIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 sm:p-8 animate-fade-in select-none">
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-6 right-6 text-stone-400 hover:text-white p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer z-50"
+            aria-label="Close Lightbox"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Left / Right Navigation */}
+          <button
+            type="button"
+            onClick={() =>
+              setLightboxIndex((prev) =>
+                prev !== null ? (prev - 1 + GALLERY_ITEMS.length) % GALLERY_ITEMS.length : 0
+              )
+            }
+            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-3 rounded-full bg-black/60 border border-white/20 hover:border-white/40 transition-colors cursor-pointer z-50"
+            aria-label="Previous Image"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setLightboxIndex((prev) => (prev !== null ? (prev + 1) % GALLERY_ITEMS.length : 0))
+            }
+            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-3 rounded-full bg-black/60 border border-white/20 hover:border-white/40 transition-colors cursor-pointer z-50"
+            aria-label="Next Image"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Lightbox Content Container */}
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col lg:flex-row gap-6 items-center overflow-y-auto lg:overflow-hidden bg-[#0c0e12] border border-white/15 rounded-2xl p-6 sm:p-8 shadow-2xl">
+            {/* Image Preview Area */}
+            <div className="w-full lg:w-3/5 relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+              <img
+                src={currentLightboxItem.src}
+                alt={currentLightboxItem.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Lightbox Metadata Panel */}
+            <div className="w-full lg:w-2/5 flex flex-col justify-between h-full text-left">
+              <div>
+                <div className="flex items-center justify-between text-xs font-mono text-amber-300 tracking-wider mb-2">
+                  <span>{currentLightboxItem.category}</span>
+                  <span>
+                    {lightboxIndex + 1} / {GALLERY_ITEMS.length}
+                  </span>
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-serif text-white mb-3">
+                  {currentLightboxItem.title}
+                </h3>
+
+                <p className="text-xs sm:text-sm text-stone-300 leading-relaxed mb-6">
+                  {currentLightboxItem.caption}
+                </p>
+
+                {/* Technical Specifications List */}
+                <div className="space-y-3 text-xs border-t border-white/10 pt-4">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-amber-300 block mb-2">
+                    Architectural Specifications
+                  </span>
+                  {currentLightboxItem.specs.map((spec, i) => (
+                    <div key={i} className="flex items-center justify-between text-stone-400">
+                      <span>{spec.label}</span>
+                      <span className="text-white font-mono text-[11px]">{spec.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-white/10 text-[11px] text-stone-500 flex items-center justify-between">
+                <span>Use &larr; / &rarr; keys or buttons to navigate dossier</span>
+                <span className="font-mono text-amber-400/80">Villa Solitude</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

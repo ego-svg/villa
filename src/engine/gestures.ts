@@ -18,15 +18,19 @@ export interface ScreenPoint {
 }
 
 export interface GestureConfig {
-  pinchThresholdDown: number; // Distance threshold to trigger PINCH_DOWN (e.g. 0.065)
-  pinchThresholdUp: number;   // Distance threshold to trigger PINCH_UP (e.g. 0.095)
-  smoothingFactor: number;    // EMA alpha factor (0 < alpha <= 1, e.g. 0.60 for snappy responsiveness)
+  touchThresholdDown: number; // Distance threshold when thumb tip & index tip physically touch (e.g. 0.070)
+  touchThresholdUp: number;   // Distance threshold required when fingers separate before next selection (e.g. 0.100)
+  pinchThresholdDown?: number; // Alias for touchThresholdDown
+  pinchThresholdUp?: number;   // Alias for touchThresholdUp
+  smoothingFactor: number;    // EMA alpha factor (0 < alpha <= 1)
   isMirrored: boolean;        // Mirror x-coordinate for intuitive selfie webcam control
   reachAmplification: number; // Scales hand movements from camera center to comfortably reach full screen
   enableAdaptiveSmoothing?: boolean; // Dynamically scale alpha for zero-jitter hover
 }
 
 export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
+  touchThresholdDown: 0.070,
+  touchThresholdUp: 0.100,
   pinchThresholdDown: 0.070,
   pinchThresholdUp: 0.100,
   smoothingFactor: 0.50,
@@ -44,10 +48,14 @@ export interface GestureFrameResult {
   hasHand: boolean;
   cursor: ScreenPoint | null;
   rawCursor: ScreenPoint | null;
-  pinchDistance: number | null;
-  isPinching: boolean;
-  pinchStarted: boolean; // Edge trigger: true ONLY on the frame pinch is initiated
-  pinchReleased: boolean; // Edge trigger: true ONLY on the frame pinch is released
+  fingerDistance: number | null;
+  pinchDistance: number | null; // Alias for fingerDistance
+  isTouching: boolean;          // True while thumb tip and index fingertip are touching in air
+  touchStarted: boolean;        // Edge trigger: true ONLY on the frame two fingers touch
+  touchReleased: boolean;       // Edge trigger: true ONLY on the frame two fingers separate
+  isPinching: boolean;          // Alias for isTouching
+  pinchStarted: boolean;        // Alias for touchStarted
+  pinchReleased: boolean;       // Alias for touchReleased
 }
 
 export class GestureProcessor {
@@ -77,16 +85,20 @@ export class GestureProcessor {
    */
   public processLandmarks(landmarks: LandmarkPoint[] | null | undefined): GestureFrameResult {
     if (!landmarks || landmarks.length < 21) {
-      const wasPinching = this.isPinchingState;
+      const wasTouching = this.isPinchingState;
       this.reset();
       return {
         hasHand: false,
         cursor: null,
         rawCursor: null,
+        fingerDistance: null,
         pinchDistance: null,
+        isTouching: false,
+        touchStarted: false,
+        touchReleased: wasTouching,
         isPinching: false,
         pinchStarted: false,
-        pinchReleased: wasPinching,
+        pinchReleased: wasTouching,
       };
     }
 
@@ -99,7 +111,11 @@ export class GestureProcessor {
         hasHand: false,
         cursor: null,
         rawCursor: null,
+        fingerDistance: null,
         pinchDistance: null,
+        isTouching: false,
+        touchStarted: false,
+        touchReleased: false,
         isPinching: false,
         pinchStarted: false,
         pinchReleased: false,
@@ -112,8 +128,8 @@ export class GestureProcessor {
     const dz = (thumbTip.z ?? 0) - (indexTip.z ?? 0);
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // As fingers close into a pinch (< 0.12), blend index tip toward thumb tip midpoint
-    // so finger movement during the pinch action does not drag the cursor off target
+    // As fingers close together (< 0.12), blend index tip toward thumb tip midpoint
+    // so finger movement during the touch press action does not drag cursor off target number
     let targetX = indexTip.x;
     let targetY = indexTip.y;
 
@@ -128,7 +144,7 @@ export class GestureProcessor {
     const baseRawY = targetY;
 
     // Apply reach amplification centered around (0.5, 0.5)
-    // This allows natural, comfortable hand gestures to easily cover the screen
+    // This allows natural, comfortable hand gestures to easily cover the full keypad
     const amp = this.config.reachAmplification;
     const amplifiedX = 0.5 + (baseRawX - 0.5) * amp;
     const amplifiedY = 0.5 + (baseRawY - 0.5) * amp;
@@ -152,7 +168,7 @@ export class GestureProcessor {
         alpha = Math.max(0.20, Math.min(this.config.smoothingFactor, 0.22 + (this.config.smoothingFactor - 0.22) * hoverRatio));
       }
 
-      // If currently in an active pinch, lock cursor position to guarantee zero displacement on click!
+      // If currently in an active finger touch, damp cursor position to lock cursor during key press!
       if (this.isPinchingState) {
         alpha = 0.05;
       }
@@ -163,19 +179,22 @@ export class GestureProcessor {
       };
     }
 
-    let pinchStarted = false;
-    let pinchReleased = false;
+    let touchStarted = false;
+    let touchReleased = false;
 
-    // Dual-threshold hysteresis state machine
+    const thresholdDown = this.config.touchThresholdDown ?? this.config.pinchThresholdDown ?? 0.070;
+    const thresholdUp = this.config.touchThresholdUp ?? this.config.pinchThresholdUp ?? 0.100;
+
+    // Dual-threshold hysteresis state machine for finger touching gesture
     if (!this.isPinchingState) {
-      if (distance <= this.config.pinchThresholdDown) {
+      if (distance <= thresholdDown) {
         this.isPinchingState = true;
-        pinchStarted = true;
+        touchStarted = true;
       }
     } else {
-      if (distance >= this.config.pinchThresholdUp) {
+      if (distance >= thresholdUp) {
         this.isPinchingState = false;
-        pinchReleased = true;
+        touchReleased = true;
       }
     }
 
@@ -183,14 +202,22 @@ export class GestureProcessor {
       hasHand: true,
       cursor: { ...this.smoothCursor },
       rawCursor: { x: clampedX, y: clampedY },
+      fingerDistance: distance,
       pinchDistance: distance,
+      isTouching: this.isPinchingState,
+      touchStarted,
+      touchReleased,
       isPinching: this.isPinchingState,
-      pinchStarted,
-      pinchReleased,
+      pinchStarted: touchStarted,
+      pinchReleased: touchReleased,
     };
   }
 
   public getIsPinching(): boolean {
+    return this.isPinchingState;
+  }
+
+  public getIsTouching(): boolean {
     return this.isPinchingState;
   }
 }

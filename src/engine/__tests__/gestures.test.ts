@@ -143,4 +143,39 @@ describe('Gesture Engine (gestures.ts)', () => {
     // Without hysteresis, point 0.32 is deadzone
     expect(findTargetAtPoint({ x: 0.32, y: 0.2 }, targets)).toBeNull();
   });
+
+  it('detects finger touch selection gesture when thumb tip & index tip physically touch', () => {
+    const processor = new GestureProcessor({
+      touchThresholdDown: 0.065,
+      touchThresholdUp: 0.095,
+    });
+
+    // Open hand (distance = 0.15 > 0.065)
+    const openHand = createSyntheticLandmarks(0.4, 0.5, 0.55, 0.5);
+    const r1 = processor.processLandmarks(openHand);
+    expect(r1.isTouching).toBe(false);
+    expect(r1.touchStarted).toBe(false);
+
+    // Fingers touch together (distance = 0.03 < 0.065)
+    const touchingHand = createSyntheticLandmarks(0.5, 0.5, 0.53, 0.5);
+    const r2 = processor.processLandmarks(touchingHand);
+    expect(r2.isTouching).toBe(true);
+    expect(r2.touchStarted).toBe(true); // Edge trigger fired!
+
+    // Holding fingers together in subsequent frame does NOT re-trigger selection
+    const r3 = processor.processLandmarks(touchingHand);
+    expect(r3.isTouching).toBe(true);
+    expect(r3.touchStarted).toBe(false);
+
+    // Fingers separate (distance = 0.12 > 0.095)
+    const separatedHand = createSyntheticLandmarks(0.4, 0.5, 0.52, 0.5);
+    const r4 = processor.processLandmarks(separatedHand);
+    expect(r4.isTouching).toBe(false);
+    expect(r4.touchReleased).toBe(true);
+
+    // New touch gesture after separation triggers touchStarted again
+    const r5 = processor.processLandmarks(touchingHand);
+    expect(r5.isTouching).toBe(true);
+    expect(r5.touchStarted).toBe(true);
+  });
 });
