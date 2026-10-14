@@ -76,18 +76,20 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
   const screenTargetsRef = useRef<KeyScreenTarget[]>([]);
   const pinStateRef = useRef<PinState>(pinState);
   pinStateRef.current = pinState;
+  const targetedKeyIdRef = useRef<string | null>(null);
+  const lastPinchTriggerTimeRef = useRef<number>(0);
 
   // Sync gesture tuning changes
   useEffect(() => {
     const ampMap = {
-      standard: 1.2,
+      standard: 1.25,
       responsive: 1.45,
-      wide: 1.8,
+      wide: 1.75,
     };
     gestureProcessorRef.current.updateConfig({
       isMirrored,
       reachAmplification: ampMap[reachLevel],
-      smoothingFactor: reachLevel === 'wide' ? 0.72 : 0.65,
+      smoothingFactor: reachLevel === 'wide' ? 0.60 : reachLevel === 'responsive' ? 0.52 : 0.46,
     });
   }, [isMirrored, reachLevel]);
 
@@ -139,15 +141,19 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
     setCursor(result.cursor);
 
     if (result.cursor && screenTargetsRef.current.length > 0) {
-      const hit = findTargetAtPoint(result.cursor, screenTargetsRef.current);
+      const hit = findTargetAtPoint(result.cursor, screenTargetsRef.current, targetedKeyIdRef.current);
       const hitId = hit ? hit.id : null;
+      targetedKeyIdRef.current = hitId;
       setTargetedKeyId(hitId);
 
-      // Real edge-triggered pinch selection: fires ONLY on the first frame of pinch initiation
-      if (result.pinchStarted && hitId) {
+      // Real edge-triggered pinch selection with debouncing to prevent accidental double-entry
+      const now = Date.now();
+      if (result.pinchStarted && hitId && now - lastPinchTriggerTimeRef.current > 380) {
+        lastPinchTriggerTimeRef.current = now;
         handleKeyAction(hitId);
       }
     } else {
+      targetedKeyIdRef.current = null;
       setTargetedKeyId(null);
     }
   }, [handleKeyAction]);
@@ -236,8 +242,9 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
       setCursor(pt);
 
       if (screenTargetsRef.current.length > 0) {
-        const hit = findTargetAtPoint(pt, screenTargetsRef.current);
-        setTargetedKeyId(hit ? hit.id : null);
+        const hit = findTargetAtPoint(pt, screenTargetsRef.current, targetedKeyIdRef.current);
+        targetedKeyIdRef.current = hit ? hit.id : null;
+        setTargetedKeyId(targetedKeyIdRef.current);
       }
     };
 
@@ -247,7 +254,7 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
 
       const normX = e.clientX / window.innerWidth;
       const normY = e.clientY / window.innerHeight;
-      const hit = findTargetAtPoint({ x: normX, y: normY }, screenTargetsRef.current);
+      const hit = findTargetAtPoint({ x: normX, y: normY }, screenTargetsRef.current, targetedKeyIdRef.current);
       if (hit) {
         handleKeyAction(hit.id);
       }

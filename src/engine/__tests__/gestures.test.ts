@@ -129,4 +129,18 @@ describe('Gesture Engine (gestures.ts)', () => {
     // Deadzone between targets
     expect(findTargetAtPoint({ x: 0.35, y: 0.2 }, targets)).toBeNull();
   });
+
+  it('stabilizes active target with sticky hysteresis against slight jitter', () => {
+    const targets: KeyScreenTarget[] = [
+      { id: '1', bounds: { left: 0.1, top: 0.1, right: 0.3, bottom: 0.3 } },
+      { id: '2', bounds: { left: 0.4, top: 0.1, right: 0.6, bottom: 0.3 } },
+    ];
+
+    // Point slightly outside '1's normal right bound (0.32), but user was targeting '1'
+    const stabilized = findTargetAtPoint({ x: 0.32, y: 0.2 }, targets, '1');
+    expect(stabilized?.id).toBe('1');
+
+    // Without hysteresis, point 0.32 is deadzone
+    expect(findTargetAtPoint({ x: 0.32, y: 0.2 }, targets)).toBeNull();
+  });
 });

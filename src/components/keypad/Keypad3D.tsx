@@ -117,7 +117,7 @@ interface TargetCalculatorProps {
 }
 
 const TargetCalculator: React.FC<TargetCalculatorProps> = ({ onTargetsCalculated }) => {
-  const { camera, gl } = useThree();
+  const { camera, gl, size } = useThree();
 
   useEffect(() => {
     const calculateTargets = () => {
@@ -189,14 +189,30 @@ const TargetCalculator: React.FC<TargetCalculatorProps> = ({ onTargetsCalculated
     window.addEventListener('resize', calculateTargets);
     window.addEventListener('scroll', calculateTargets);
 
-    const timer = setTimeout(calculateTargets, 200);
+    // Multi-stage recalculation for layout/font rendering stabilization
+    const frame1 = requestAnimationFrame(calculateTargets);
+    const timer1 = setTimeout(calculateTargets, 100);
+    const timer2 = setTimeout(calculateTargets, 300);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && gl.domElement) {
+      resizeObserver = new ResizeObserver(() => {
+        calculateTargets();
+      });
+      resizeObserver.observe(gl.domElement);
+    }
 
     return () => {
       window.removeEventListener('resize', calculateTargets);
       window.removeEventListener('scroll', calculateTargets);
-      clearTimeout(timer);
+      cancelAnimationFrame(frame1);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
-  }, [camera, gl, onTargetsCalculated]);
+  }, [camera, gl, size.width, size.height, onTargetsCalculated]);
 
   return null;
 };

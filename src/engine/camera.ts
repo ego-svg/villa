@@ -38,6 +38,7 @@ export class CameraVisionManager {
   private rafId: number | null = null;
   private isRunning = false;
   private lastVideoTime = -1;
+  private consecutiveLostFrames = 0;
   private callbacks: CameraCallbacks;
   private status: CameraStatus = 'IDLE';
 
@@ -201,6 +202,7 @@ export class CameraVisionManager {
           );
 
           if (results.landmarks && results.landmarks.length > 0 && results.landmarks[0].length >= 21) {
+            this.consecutiveLostFrames = 0;
             const rawLandmarks = results.landmarks[0];
             const mappedLandmarks: LandmarkPoint[] = rawLandmarks.map((pt) => ({
               x: pt.x,
@@ -212,10 +214,14 @@ export class CameraVisionManager {
             }
             this.callbacks.onLandmarks?.(mappedLandmarks);
           } else {
-            if (this.status === 'TRACKING') {
-              this.setStatus('HAND_LOST');
+            this.consecutiveLostFrames++;
+            // Allow 3 grace frames (~80-100ms) before reporting loss to avoid single-frame flickering/glitching
+            if (this.consecutiveLostFrames >= 3) {
+              if (this.status === 'TRACKING') {
+                this.setStatus('HAND_LOST');
+              }
+              this.callbacks.onLandmarks?.(null);
             }
-            this.callbacks.onLandmarks?.(null);
           }
         } catch {
           // Skip frame gracefully if timestamp or buffer issue
@@ -233,6 +239,7 @@ export class CameraVisionManager {
    */
   public stop(): void {
     this.isRunning = false;
+    this.consecutiveLostFrames = 0;
 
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);

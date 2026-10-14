@@ -26,11 +26,11 @@ export interface GestureConfig {
 }
 
 export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
-  pinchThresholdDown: 0.065,
-  pinchThresholdUp: 0.095,
-  smoothingFactor: 0.60,
+  pinchThresholdDown: 0.070,
+  pinchThresholdUp: 0.100,
+  smoothingFactor: 0.50,
   isMirrored: true,
-  reachAmplification: 1.35,
+  reachAmplification: 1.30,
 };
 
 // MediaPipe standard landmark indices
@@ -186,12 +186,34 @@ export interface KeyScreenTarget {
 }
 
 /**
- * Hit test helper: checks which key target contains point (x, y)
+ * Hit test helper: checks which key target contains point (x, y).
+ * Supports sticky target hysteresis to prevent glitching/jitter across key boundaries.
  */
 export function findTargetAtPoint(
   point: ScreenPoint,
-  targets: KeyScreenTarget[]
+  targets: KeyScreenTarget[],
+  currentTargetId?: string | null
 ): KeyScreenTarget | null {
+  // If a key is currently targeted, give it a 20% expanded boundary buffer
+  // so slight hand tremor in the air does not glitch between neighbor keys
+  if (currentTargetId) {
+    const current = targets.find((t) => t.id === currentTargetId);
+    if (current) {
+      const w = current.bounds.right - current.bounds.left;
+      const h = current.bounds.bottom - current.bounds.top;
+      const padW = w * 0.20;
+      const padH = h * 0.20;
+      if (
+        point.x >= current.bounds.left - padW &&
+        point.x <= current.bounds.right + padW &&
+        point.y >= current.bounds.top - padH &&
+        point.y <= current.bounds.bottom + padH
+      ) {
+        return current;
+      }
+    }
+  }
+
   for (const target of targets) {
     if (
       point.x >= target.bounds.left &&
