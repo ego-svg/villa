@@ -1,0 +1,23 @@
+{
+  "name": "PRIVATE RESIDENCE — Luxury Architectural Experience",
+  "short_name": "Private Residence",
+  "description": "Gesture-controlled luxury architectural real estate experience featuring spatial 3D keypad and cinematic video reveal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090A0C",
+  "theme_color": "#090A0C",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "240x240",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -12,6 +12,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useScrollVideoTimeline } from '../../engine/useScrollVideoTimeline';
 import { formatVideoTime } from '../../engine/scrollVideo';
+import { ResidenceLogo } from '../brand/ResidenceLogo';
 import {
   Lock,
   ChevronDown,
@@ -101,15 +102,9 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
   return (
     <div className="relative w-full min-h-screen bg-[#090a0c] text-stone-200 selection:bg-amber-400 selection:text-black">
       {/* Fixed Minimal Top Bar */}
-      <header className="fixed top-0 left-0 w-full z-40 px-6 py-4 flex items-center justify-between pointer-events-none transition-all duration-300">
-        <div className="pointer-events-auto flex items-center gap-3 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 shadow-lg">
-          <span className="text-sm font-serif tracking-[0.25em] text-white">
-            PRIVATE RESIDENCE
-          </span>
-          <span className="text-white/20">/</span>
-          <span className="text-[11px] font-sans text-stone-400 uppercase tracking-widest hidden sm:inline">
-            Villa Solitude
-          </span>
+      <header className="fixed top-0 left-0 w-full z-40 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between pointer-events-none transition-all duration-300">
+        <div className="pointer-events-auto flex items-center bg-black/70 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-white/10 shadow-lg">
+          <ResidenceLogo size="xs" subtitle="Villa Solitude" />
         </div>
 
         <div className="pointer-events-auto flex items-center gap-3">
@@ -463,9 +458,12 @@ export const CinematicHouseExperience: React.FC<CinematicHouseExperienceProps> =
         </section>
 
         {/* Quiet Editorial Footer */}
-        <footer className="border-t border-white/10 py-12 px-6 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-6xl mx-auto text-xs text-stone-500">
-          <div>
-            &copy; 2026 PRIVATE RESIDENCE · Villa Solitude · All Rights Reserved
+        <footer className="border-t border-white/10 py-12 px-6 flex flex-col sm:flex-row items-center justify-between gap-6 max-w-6xl mx-auto text-xs text-stone-500">
+          <div className="flex items-center gap-4">
+            <ResidenceLogo size="xs" showSubtitle={false} />
+            <span className="text-stone-500 border-l border-white/10 pl-4">
+              &copy; 2026 PRIVATE RESIDENCE · Villa Solitude · All Rights Reserved
+            </span>
           </div>
           <div className="flex items-center gap-6">
             <button

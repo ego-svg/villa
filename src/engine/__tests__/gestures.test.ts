@@ -6,7 +6,7 @@ import {
   KeyScreenTarget,
 } from '../gestures';
 
-function createSyntheticLandmarks(thumbX = 0.5, thumbY = 0.5, indexX = 0.5, indexY = 0.5): LandmarkPoint[] {
+function createSyntheticLandmarks(thumbX = 0.35, thumbY = 0.5, indexX = 0.5, indexY = 0.5): LandmarkPoint[] {
   const points: LandmarkPoint[] = Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0 }));
   points[4] = { x: thumbX, y: thumbY, z: 0 };
   points[8] = { x: indexX, y: indexY, z: 0 };
@@ -17,7 +17,7 @@ describe('Gesture Engine (gestures.ts)', () => {
   it('correctly maps and mirrors index fingertip to screen-space coordinates', () => {
     const processor = new GestureProcessor({ isMirrored: true, smoothingFactor: 1.0, reachAmplification: 1.0 });
     // index fingertip at x=0.2 (webcam left side)
-    const landmarks = createSyntheticLandmarks(0.2, 0.4, 0.2, 0.4);
+    const landmarks = createSyntheticLandmarks(0.05, 0.4, 0.2, 0.4);
     const result = processor.processLandmarks(landmarks);
 
     expect(result.hasHand).toBe(true);
@@ -30,11 +30,11 @@ describe('Gesture Engine (gestures.ts)', () => {
     const processor = new GestureProcessor({ isMirrored: false, smoothingFactor: 0.5, reachAmplification: 1.0 });
 
     // Frame 1: index at x=0.2
-    const frame1 = processor.processLandmarks(createSyntheticLandmarks(0.2, 0.2, 0.2, 0.2));
+    const frame1 = processor.processLandmarks(createSyntheticLandmarks(0.05, 0.2, 0.2, 0.2));
     expect(frame1.cursor?.x).toBeCloseTo(0.2, 5);
 
     // Frame 2: index jumps to x=0.6
-    const frame2 = processor.processLandmarks(createSyntheticLandmarks(0.6, 0.2, 0.6, 0.2));
+    const frame2 = processor.processLandmarks(createSyntheticLandmarks(0.45, 0.2, 0.6, 0.2));
     // EMA: 0.5 * 0.6 + 0.5 * 0.2 = 0.4
     expect(frame2.cursor?.x).toBeCloseTo(0.4, 5);
   });

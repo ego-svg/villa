@@ -12,6 +12,7 @@
 
 import React, { useState } from 'react';
 import { useAudioController } from '../../engine/useAudioController';
+import { ResidenceLogo } from '../brand/ResidenceLogo';
 import { Volume2, VolumeX, AlertCircle, Loader2 } from 'lucide-react';
 
 interface MusicInvitationProps {
@@ -56,13 +57,13 @@ export const MusicInvitation: React.FC<MusicInvitationProps> = ({ onEnterSite })
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090a0c] text-stone-200 select-none px-6 py-8 architectural-vignette animate-fade-in">
       <div className="relative w-full max-w-lg flex flex-col items-center text-center">
-        {/* Subtle Architectural Sound Detail */}
-        <div className="w-12 h-12 mb-8 flex items-center justify-center rounded-full bg-white/[0.03] border border-white/10 text-amber-200/80">
-          <Volume2 className="w-5 h-5 stroke-[1.5]" />
+        {/* Architectural Emblem */}
+        <div className="mb-6">
+          <ResidenceLogo variant="stacked" size="md" showSubtitle={false} />
         </div>
 
         {/* Super-title */}
-        <span className="text-[11px] sm:text-xs font-sans tracking-[0.3em] uppercase text-stone-400 mb-4 font-medium">
+        <span className="text-[11px] sm:text-xs font-sans tracking-[0.3em] uppercase text-stone-400 mb-3 font-medium">
           A Moment Before You Enter
         </span>
 

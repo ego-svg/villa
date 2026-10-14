@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <!-- Obsidian Background with subtle rounded architectural boundary -->
+  <rect width="64" height="64" rx="14" fill="#090A0C" />
+  <rect x="1" y="1" width="62" height="62" rx="13" stroke="#D4AF37" stroke-opacity="0.35" stroke-width="1.2" />
+
+  <!-- Inner Architectural Diamond Grid -->
+  <path d="M32 8L54 32L32 56L10 32Z" stroke="#D4AF37" stroke-opacity="0.2" stroke-width="0.8" fill="none" />
+  
+  <!-- Architectural Portal Monoliths & Cantilever Beam -->
+  <!-- Left Pillar (P) -->
+  <path d="M22 18V46" stroke="#F5F5F0" stroke-width="3" stroke-linecap="round" />
+  <!-- P Arch (upper loop) -->
+  <path d="M22 18H32C36.4183 18 40 21.5817 40 26C40 30.4183 36.4183 34 32 34H22" stroke="#F5F5F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Right Diagonal Cantilever / Leg (R) -->
+  <path d="M29 33L39 46" stroke="#D4AF37" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- Golden Finial Accent Point -->
+  <circle cx="32" cy="11" r="1.5" fill="#F59E0B" />
+  <circle cx="32" cy="53" r="1.5" fill="#F59E0B" />
+</svg>

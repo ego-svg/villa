@@ -23,6 +23,7 @@ export interface GestureConfig {
   smoothingFactor: number;    // EMA alpha factor (0 < alpha <= 1, e.g. 0.60 for snappy responsiveness)
   isMirrored: boolean;        // Mirror x-coordinate for intuitive selfie webcam control
   reachAmplification: number; // Scales hand movements from camera center to comfortably reach full screen
+  enableAdaptiveSmoothing?: boolean; // Dynamically scale alpha for zero-jitter hover
 }
 
 export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
@@ -31,6 +32,7 @@ export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
   smoothingFactor: 0.50,
   isMirrored: true,
   reachAmplification: 1.30,
+  enableAdaptiveSmoothing: false,
 };
 
 // MediaPipe standard landmark indices
@@ -104,9 +106,26 @@ export class GestureProcessor {
       };
     }
 
-    // Map index tip into normalized space
-    const baseRawX = this.config.isMirrored ? 1.0 - indexTip.x : indexTip.x;
-    const baseRawY = indexTip.y;
+    // Calculate Euclidean distance in 3D landmark space between thumb tip and index tip
+    const dx = thumbTip.x - indexTip.x;
+    const dy = thumbTip.y - indexTip.y;
+    const dz = (thumbTip.z ?? 0) - (indexTip.z ?? 0);
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    // As fingers close into a pinch (< 0.12), blend index tip toward thumb tip midpoint
+    // so finger movement during the pinch action does not drag the cursor off target
+    let targetX = indexTip.x;
+    let targetY = indexTip.y;
+
+    if (distance < 0.12) {
+      const blend = Math.min(1.0, Math.max(0.0, (0.12 - distance) / 0.08)) * 0.5;
+      targetX = indexTip.x * (1 - blend) + thumbTip.x * blend;
+      targetY = indexTip.y * (1 - blend) + thumbTip.y * blend;
+    }
+
+    // Map into normalized space and apply mirror if configured
+    const baseRawX = this.config.isMirrored ? 1.0 - targetX : targetX;
+    const baseRawY = targetY;
 
     // Apply reach amplification centered around (0.5, 0.5)
     // This allows natural, comfortable hand gestures to easily cover the screen
@@ -117,22 +136,32 @@ export class GestureProcessor {
     const clampedX = Math.max(0, Math.min(1, amplifiedX));
     const clampedY = Math.max(0, Math.min(1, amplifiedY));
 
-    // Exponential moving average (EMA) smoothing for responsive yet stable tracking
+    // Adaptive smoothing for rock-solid stability during hover / slow targeting
     if (!this.smoothCursor) {
       this.smoothCursor = { x: clampedX, y: clampedY };
     } else {
-      const alpha = this.config.smoothingFactor;
+      // Calculate cursor movement velocity
+      const moveDx = clampedX - this.smoothCursor.x;
+      const moveDy = clampedY - this.smoothCursor.y;
+      const speed = Math.sqrt(moveDx * moveDx + moveDy * moveDy);
+
+      // Scale alpha adaptively if enabled: high speed -> responsive, low speed -> ultra-smooth
+      let alpha = this.config.smoothingFactor;
+      if (this.config.enableAdaptiveSmoothing && speed < 0.04) {
+        const hoverRatio = speed / 0.04;
+        alpha = Math.max(0.20, Math.min(this.config.smoothingFactor, 0.22 + (this.config.smoothingFactor - 0.22) * hoverRatio));
+      }
+
+      // If currently in an active pinch, lock cursor position to guarantee zero displacement on click!
+      if (this.isPinchingState) {
+        alpha = 0.05;
+      }
+
       this.smoothCursor = {
         x: alpha * clampedX + (1 - alpha) * this.smoothCursor.x,
         y: alpha * clampedY + (1 - alpha) * this.smoothCursor.y,
       };
     }
-
-    // Calculate Euclidean distance in 3D landmark space between thumb tip and index tip
-    const dx = thumbTip.x - indexTip.x;
-    const dy = thumbTip.y - indexTip.y;
-    const dz = (thumbTip.z ?? 0) - (indexTip.z ?? 0);
-    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     let pinchStarted = false;
     let pinchReleased = false;

@@ -29,6 +29,7 @@ import {
   DEFAULT_DEMO_PIN,
   MAX_PIN_LENGTH,
 } from '../../engine/auth';
+import { soundEffects } from '../../engine/soundEffects';
 import { Keypad3D } from '../keypad/Keypad3D';
 import { KeypadFallback } from '../keypad/KeypadFallback';
 import { PinDisplay } from '../keypad/PinDisplay';
@@ -90,6 +91,7 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
       isMirrored,
       reachAmplification: ampMap[reachLevel],
       smoothingFactor: reachLevel === 'wide' ? 0.60 : reachLevel === 'responsive' ? 0.52 : 0.46,
+      enableAdaptiveSmoothing: true,
     });
   }, [isMirrored, reachLevel]);
 
@@ -97,6 +99,8 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
   const handleKeyAction = useCallback((keyId: string) => {
     const currentState = pinStateRef.current;
     if (currentState.status === 'SUCCESS') return;
+
+    soundEffects.playKeyPressSound();
 
     // Trigger visual press feedback
     setPressedKeyId(keyId);
@@ -116,10 +120,12 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
         const { nextState: verifiedState, isCorrect } = verifyPin(nextState);
         nextState = verifiedState;
         if (isCorrect) {
+          soundEffects.playSuccessSound();
           setTimeout(() => {
             onUnlockSuccess();
           }, 1200);
         } else {
+          soundEffects.playErrorSound();
           // Reset pin after brief error feedback
           setTimeout(() => {
             setPinState((prev) => (prev.status === 'ERROR' ? clearPin(prev) : prev));
@@ -143,6 +149,11 @@ export const EntranceController: React.FC<EntranceControllerProps> = ({ onUnlock
     if (result.cursor && screenTargetsRef.current.length > 0) {
       const hit = findTargetAtPoint(result.cursor, screenTargetsRef.current, targetedKeyIdRef.current);
       const hitId = hit ? hit.id : null;
+
+      if (hitId && hitId !== targetedKeyIdRef.current) {
+        soundEffects.playHoverSound();
+      }
+
       targetedKeyIdRef.current = hitId;
       setTargetedKeyId(hitId);
 
