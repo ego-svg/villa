@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-obsidian: #090a0c;
+    --color-charcoal: #121418;
+    --color-graphite: #1c2026;
+    --color-warm-stone: #e8e3dc;
+    --color-travertine: #cfc8be;
+    --color-subtle-brass: #c8a86b;
+    --color-brass-glow: rgba(200, 168, 107, 0.28);
+  }
+
+  body {
+    background-color: var(--color-obsidian);
+    color: var(--color-warm-stone);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-serif {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+}
+
+/* Subtle architectural radial spotlight */
+.architectural-vignette {
+  background: radial-gradient(circle at 50% 45%, rgba(30, 36, 44, 0.45) 0%, rgba(9, 10, 12, 0.95) 75%, #090a0c 100%);
+}

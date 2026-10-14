@@ -1,0 +1,6 @@
+{
+  "name": "private-residence-gesture-luxury",
+  "description": "Private Residence — Gesture-controlled luxury architectural real estate experience featuring spatial 3D keypad and cinematic video reveal.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
