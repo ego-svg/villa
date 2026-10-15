@@ -9,6 +9,8 @@
  * 5. Independent of house video playback and scroll timeline.
  */
 
+import { getAssetUrl } from './assetUrl';
+
 export type AudioPlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
 export interface AudioState {
@@ -45,7 +47,7 @@ export class AudioController {
   private getOrCreateAudio(): HTMLAudioElement | null {
     if (!this.audio && (typeof Audio !== 'undefined' || typeof window !== 'undefined')) {
       if (typeof Audio !== 'undefined') {
-        this.audio = new Audio(this.state.src);
+        this.audio = new Audio(getAssetUrl(this.state.src));
         this.audio.preload = 'metadata';
         this.audio.loop = true;
         this.audio.volume = this.state.volume;

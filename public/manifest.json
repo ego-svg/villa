@@ -1,0 +1,15 @@
+{
+  "short_name": "Residence",
+  "name": "PRIVATE RESIDENCE — Architectural Experience",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "./",
+  "background_color": "#090A0C",
+  "theme_color": "#090A0C",
+  "display": "standalone"
+}

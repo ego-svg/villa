@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(() => {
   return {
+    base: './', // Ensures relative pathing for assets when deployed to GitHub Pages or subpath hosts
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
